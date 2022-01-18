@@ -1,0 +1,242 @@
+---
+author: "*Angelina Navitskaya*, **s4647285**"
+title: "Assessment 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+thanksgiving_meals <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-11-20/thanksgiving_meals.csv")
+```
+
+```{r}
+### 1. Display the first 10 rows of the dataset using `kable()` function (1 mark). 
+
+library(knitr)
+kable(thanksgiving_meals[1:10, ], caption = "First 10 Rows")
+```
+
+```{r}
+### 2. Using `skim()` display the summary of variables. 
+
+library(skimr)
+skim(thanksgiving_meals)
+```
+
+Question: Think about the task to predict a family income **based on their menu**: what variables may be useful? Are all of them correct type? (2 marks)
+ 
+***Answer:*** By late November even the cheaper vegetables and fruits start to become more expensive, so the variables like Fruit salad and Vegetable salad could signalize about better financial situation. Side dishes such as Brussel sprouts and Cauliflower would be more expensive compared to Carrots and Corn, desserts like Cherry and Pecan pies, Cheesecake and Peach cobbler are more exotic compared to traditional Apple and Pumpkin pies and, therefore, could also indicate a higher family income. All of them are correct type.
+
+Question: Think about the task to predict a community type OR US_region **based on their menu**: what variables may be useful? (2 marks)
+
+***Answer:*** The assumption is that some side dishes are more popular in one US region than the other, and therefore, the most disproportionately consumed holiday foods can be considered to predict a US region. All of them are correct type.
+
+```{r}
+### 3. Use `fct_reorder` and `parse_number` functions to create a factor variable `family_income`(2 mark).
+
+thanksgiving_meals <- thanksgiving_meals %>%
+  mutate(family_income = fct_reorder(family_income, parse_number(family_income)))
+```
+
+```{r}
+### Use skim() to check if it was actually converted
+
+skim(thanksgiving_meals)
+```
+
+```{r}
+### 4. What is the number of people who celebrate? (1 mark) 
+
+thanksgiving_meals %>%
+   count(celebrate)
+```
+
+***Insights:*** 92.6% of respondents celebrate Thanksgiving.
+
+```{r}
+### 5. What are categories and insights for each main dish served and the method it is prepared? (2 marks)
+
+main_dish_prep <- thanksgiving_meals %>%
+  filter(!(main_dish == "NA")) %>%
+  filter(!(main_dish == "Other (please specify)")) %>%
+  filter(!(main_dish == "I don't know-")) %>%
+  count(main_dish, main_prep, sort = TRUE)
+```
+
+***Insights:*** 859 respondents said that Turkey was the centerpiece of their meal, half of which had it baked, 40% had it roasted and the rest 10% used other preparation methods.The rest 75 respondents (who answered this question) chose Ham/Pork (29 respondents), Tofurkey (20), Chicken (12), Roast Beef (11) and Turducken (3). Baking seems to be a preferable cooking method for most respondents. 
+
+```{r}
+### 6. Create 3 different data viz showing insights for main dish served and the method. Provide your own legend and use themes. Write 2-3 sentences with your explanation of each insight. (4 marks)
+
+main_dish_prep %>%
+  mutate(main_dish = fct_reorder(main_dish, n)) %>%
+  ggplot(aes(main_dish, n, fill = main_prep)) +
+  geom_col() +
+  coord_flip() + 
+   labs(x = "Main Dish", fill = "Cooking Method", 
+       title = "Cooking Methods used across Different Thanksgiving Main Dishes")
+```
+
+```{r}
+main_dish_prep %>%
+  ggplot(aes(x = main_dish, y = n, fill= main_prep)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  coord_flip() + 
+   labs(x = "Main Dish", fill = "Cooking Method", 
+       title = "Cooking Methods used across Different Thanksgiving Main Dishes")
+```
+
+```{r}
+main_dish_prep %>%
+  ggplot(aes(x = n, y = main_dish, fill= main_prep)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  coord_flip() + 
+  labs(x = "Number", y = "Main Dish", fill = "Cooking Method", 
+       title = "Thanksgiving Main Dishes & Cooking Methods Used")
+```
+
+```{r}
+main_dish_prep %>%
+   filter(!(main_dish == "Turkey")) %>%
+  ggplot(aes(x = main_dish, y = main_prep, fill= n)) +
+  geom_tile() +
+  scale_fill_gradient2() +
+  theme_classic() +
+   labs(x = "Main Dish", y = "Cooking Method", fill = "Number", 
+       title = "Thanksgiving Main Dishes & Cooking Methods Used")
+
+# Turkey was removed from the last visualization for better analysis of other variables. 
+```
+
+***Insights:*** The most popular Thanksgiving main dish is **Baked and Roasted** Turkey. In regards to other main dishes, respondents chose **Baked** Tofurkey - a plant-based alternative to Turkey, **Baked** Ham/Pork, **Roasted** Beef, **Baked and Roasted** Chicken and 3 respondents chose Turducken - a dish consisting of a deboned chicken stuffed into a deboned duck. Overall, ***baking*** seems to be a preferable cooking method for most respondents. 
+
+```{r}
+### 7. How many use cranberry sauce? How many use gravy? (2 marks)
+
+thanksgiving_meals %>%
+  count(cranberry, sort = TRUE)
+
+thanksgiving_meals %>%
+  count(gravy, sort = TRUE)
+```
+
+***Insights:*** 828 respondents use cranberry sauce and 892 use gravy. 
+
+```{r}
+### 8-9. What is the distribution of those who celebrate across income ranges. Create a data viz. Write 2-3 sentences with your explanation of each insight. (4 marks)
+
+thanksgiving_meals %>%
+  group_by(family_income) %>% 
+  summarise(celebrate = sum(celebrate == "Yes"),
+            total = n()) %>%
+  ggplot(aes(family_income, celebrate / total, group = 1)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(x = "Family Income", y = "% Celebrating Thanksgiving")
+```
+
+***Insights:*** According to the data visualization, it looks like more than 90% of people celebrating Thanksgiving despite various family income ranges. However, the % of people celebrating Thanksgiving decreases if a family household makes less than $25,000.  
+
+```{r}
+### 10. Use the following code to create a new data set (2 marks)
+
+new_thanksgiving <- thanksgiving_meals %>%
+select(id, starts_with("side"),
+         starts_with("pie"),
+         starts_with("dessert")) %>%
+  select(-side15, -pie13, -dessert12) %>%
+  gather(type, value, -id) %>%
+  filter(!is.na(value),
+         !value %in% c("None", "Other (please specify)")) %>%
+  mutate(type = str_remove(type, "\\d+"))
+```
+
+***Explanation:*** Function select(id, starts_with()) creates a table with a respondent's ID and the information about holiday foods including sides, pies and desserts he /she prepares for Thanksgiving.The dataset excludes columns side15, pie13 and dessert12 because they have a large number of unique values (derived from the previous column "Other (please specify)") that very hard to generalize and, therefore, use for data analysis. Function gather() helps to structure multiple columns in one column (type stands for side1, side2, side3,.., pie1, pie2,.., dessert1, dessert2,.., etc., while value includes the names of holiday dishes). The last step mutate(type = str_remove(type, "\\d+")) removes the number at the end of each side, pie and dessert to present a clean and structured data set. 
+
+```{r}
+### 11-12. Intall package `widyr` and use `pairwise_cor()` function.  Write 2-3 sentences with your explanation of what it does. (2 marks)
+
+#install.packages("widyr")
+library(widyr)
+
+new_thanksgiving %>%
+  pairwise_cor(value, id, sort = TRUE)
+```
+
+***Explanation:*** Function pairwise_cor is used to examine correlation among pairs of items in a column based on a "feature" column that links them together. It indicates how often they appear together relative to how often they appear separately.
+
+***Insights:*** The correlation above 0.4 indicated that the direction of the relationship is relatively strong, correlations between 0.2 and 0.4 are considered to be moderate and below 0.2 are weak. After quick data results review, it looks like most of the variables have a moderate or low correlation coefficient. 
+
+```{r}
+### 13. Use `lm()` or randomForest() function to build a model that predict a family income based on data in the dataset (8 marks).
+
+skim(thanksgiving_meals)
+
+#family_income is character, and therefore, the classification method will be used. 
+
+library(randomForest)
+library(tidymodels)
+library(modeldata)
+
+#Modelling starts
+
+##Splitting the dataset into training and testing datasets
+
+train_test_split <- initial_split(thanksgiving_meals)
+
+summary(train_test_split)
+
+thanksgiving_meals_train <- training(train_test_split)
+
+thanksgiving_meals_test <- testing(train_test_split)
+
+##Pre-process data
+
+#1. Set the recipe and get ingredients [recipe()]
+
+thanksgiving_meals_recipe <- recipe(data = thanksgiving_meals_train, family_income ~ .)
+
+summary(thanksgiving_meals_recipe)
+
+#2. Write the recipe steps [step_xxx()]
+
+#3. Get ready with the preparations [prep()]
+
+thanksgiving_meals_prep <- prep(thanksgiving_meals_recipe, training = thanksgiving_meals_train)
+
+summary(thanksgiving_meals_prep)
+
+#4. Bake the recipe [bake()]
+
+thanksgiving_meals_bake <- bake(thanksgiving_meals_prep, thanksgiving_meals_train)
+
+##Train (Build) the model
+
+tm1 <- randomForest(family_income ~ age, data = thanksgiving_meals, na.action = na.omit)
+
+print(tm1)
+
+tm2 <- randomForest(family_income ~ age + gender, data = thanksgiving_meals,na.action = na.omit)
+
+print(tm2)
+
+tm3 <- randomForest(family_income ~ age + travel + gender, data = thanksgiving_meals,na.action = na.omit)
+
+print(tm3)
+
+```
+
+***Explanation for choice of variables:*** **Age** - the assumption is that income rises with age dropping moderately when people reach the retirement age. **Gender** - due to the fact that in majority of cases women are those who take maternity leaves, they are climbing the career ladder slower. So, the assumption here is that male respondents earn more money. **Travel** - if higher income respondents are older and have more established families, then the assumption is that lower income respondents, like students, have to travel back home for thanksgiving.
+
+***Best model:*** Model 2
+Model 1 - OOB estimate of  error rate: 82.63%
+Model 2 -  OOB estimate of  error rate: 81.85%
+Model 3 -  OOB estimate of  error rate: 83.74%
+
+High error rate might signalize about lack of data for machine learning or that the chosen sample of input variables have low relativity to the output variable. Despite that Model 2 has the lowest error rate and in that case would be considered the best.
